@@ -5,6 +5,9 @@ const { generateToken } = require("../config/jwt.config");
 // -- REGISTRAR UN USUARIO --
 //    try - catch CON async - await PARA RESPETAR EL ORDEN DE LAS OPERACIONES
 const register = async (req, res) => {
+  
+  console.log("📌 register controller llamado");
+  console.log("Body recibido:", req.body);
   try {
     const newUser = req.body;
 

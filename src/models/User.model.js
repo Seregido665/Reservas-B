@@ -23,23 +23,29 @@ const userSchema = new mongoose.Schema({
     minLength: [8, "Al menos 8 caracteres!"],
   },
 }, {
-  // MONGO GENERA UN ID PERO ASI: _id
-  // Para cambiarlo en el JSON:
   toJSON: {
     virtuals: true,
     transform: (doc, ret) => {
-      ret.id = ret._id; // Pasamos '_id' a 'id'
-      delete ret.password; // Eliminamos 'password'
+      ret.id = ret._id; 
+      delete ret.password; 
       delete ret._id;      
       delete ret.__v;     
     } 
-  }
+  },
+  toObject: { virtuals: true },
 });
 
-userSchema.virtual("books", {
-  ref: "Book",
+userSchema.virtual("reservations", {
+  ref: "Reservation",
   localField: "_id",
   foreignField: "user",
+  justOne: false,
+});
+
+userSchema.virtual("spaces", {
+  ref: "Space",
+  localField: "_id",
+  foreignField: "createdBy",
   justOne: false,
 });
 
@@ -48,7 +54,6 @@ userSchema.virtual("books", {
 userSchema.pre("save", function (next) {   
   const user = this;
 
-  // PARA COMPROBAR QUE NO SE HA CAMBIADO LA CONTRASEÑA Y QUE NO SE hashee DE NUEVO.
   if (!user.isModified("password")) {  
     return next();
   }
