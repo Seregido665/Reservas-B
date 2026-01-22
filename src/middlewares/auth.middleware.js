@@ -1,11 +1,10 @@
 const { verifyToken } = require("../config/jwt.config");
 const UserModel = require("../models/User.model");
 
-// --- PARA VERIFICAR EN router.config.js TOKEN CUANDO SEA NECESARIO ---
 const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(" ")[1]; // ['Bearer', 'TOKEN']
+    const token = authHeader && authHeader.split(" ")[1];
 
     if (!token) {
       return res.status(401).json({ message: "Token de acceso requerido" });
@@ -13,6 +12,7 @@ const authenticateToken = async (req, res, next) => {
 
     // Verificar el token
     const decoded = verifyToken(token);
+    console.log("💡 Middleware auth ejecutado, userId:", decoded.userId); // ✅ Ahora sí existe
 
     // Buscar el usuario en la base de datos
     const user = await UserModel.findById(decoded.userId);
@@ -20,10 +20,12 @@ const authenticateToken = async (req, res, next) => {
       return res.status(401).json({ message: "Usuario no encontrado" });
     }
 
-    req.user = user;  // AGREGAMOS EL USUARIO AL REQUEST PARA USO EN OTROS MIDDLEWARES/CONTROLADORES
+    req.user = user;
+    console.log("✅ Usuario autenticado:", req.user._id); // Debug
     next();
     
   } catch (error) {
+    console.error("❌ Error en authenticateToken:", error); // Debug
     if (error.name === "JsonWebTokenError") {
       return res.status(401).json({ message: "Token inválido" });
     } else if (error.name === "TokenExpiredError") {
@@ -36,7 +38,6 @@ const authenticateToken = async (req, res, next) => {
   }
 };
 
-// --- VERIFICAR ADMIN ---
 const isAdmin = (req, res, next) => {
   if (req.user.role !== "admin") {
     return res.status(403).json({

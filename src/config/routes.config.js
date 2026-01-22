@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 
-
 console.log("✅ routes.config.js cargado");
 
 
@@ -41,5 +40,4 @@ router.get("/reservations/me", authenticateToken, reservationController.getMyRes
 router.get("/reservations", authenticateToken, isAdmin, reservationController.getAllReservations);
 router.patch(
   "/reservations/:id/cancel", authenticateToken, reservationController.cancelReservation);
-
 module.exports = router;

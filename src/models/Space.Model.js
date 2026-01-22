@@ -10,8 +10,7 @@ const spaceSchema = new mongoose.Schema(
 
     type: {
       type: String,
-      enum: ["SALA", "PISTA", "MESA"],
-      required: [true, "El tipo de espacio es obligatorio"],
+      enum: ["MESA"],
     },
 
     capacity: {
