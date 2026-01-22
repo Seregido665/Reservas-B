@@ -31,11 +31,11 @@ const reservationSchema = new mongoose.Schema(
       match: /^([01]\d|2[0-3]):([0-5]\d)$/,
     },
 
-    status: {
-      type: String,
-      enum: ["PENDING", "CONFIRMED", "CANCELLED"],
-      default: "PENDING",
-    },
+   status: {
+    type: String,
+    enum: ["PENDING", "CONFIRMED", "CANCELLED"],  // ← todo en MAYÚSCULAS, sin espacios ni typos
+    default: "PENDING",
+  },
   },
   {
     timestamps: true,
@@ -52,13 +52,11 @@ const reservationSchema = new mongoose.Schema(
 
 
 // 🧠 VALIDACIÓN: endHour debe ser mayor que startHour
-reservationSchema.pre("save", function (next) {
+reservationSchema.pre("save", async function () {
   if (this.startHour >= this.endHour) {
-    return next(
-      new Error("La hora de fin debe ser posterior a la de inicio")
-    );
+    throw new Error("La hora de fin debe ser posterior a la de inicio");
   }
-  next();
+  // No necesitas llamar a nada → continúa automáticamente
 });
 
 module.exports = mongoose.model("Reservation", reservationSchema);

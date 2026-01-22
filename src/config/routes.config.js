@@ -36,8 +36,10 @@ router.patch("/spaces/:id", authenticateToken, isAdmin, spaceController.updateSp
 // RESERVATIONS
 // ------------------------------------------------------------------
 router.post("/reservations", authenticateToken, reservationController.createReservation);
-router.get("/reservations/me", authenticateToken, reservationController.getMyReservations);
+router.get("/myReservations", authenticateToken, reservationController.getMyReservations);
 router.get("/reservations", authenticateToken, isAdmin, reservationController.getAllReservations);
-router.patch(
-  "/reservations/:id/cancel", authenticateToken, reservationController.cancelReservation);
+router.patch("/reservations/:id/cancel", authenticateToken, reservationController.cancelReservation);  // ← Corrige a /cancel para coincidir con servicio
+router.patch("/reservations/:id/reactivate", authenticateToken, reservationController.reactivateReservation);  // ← Nueva ruta
+router.delete("/reservations/:id", authenticateToken, reservationController.deleteReservation);  // ← Nueva ruta para delete
+
 module.exports = router;
