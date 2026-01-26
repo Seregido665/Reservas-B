@@ -1,36 +1,29 @@
+// reserva.controller.js (actualizado)
+
 const ReservationModel = require("../models/Reserva.Model");
 const SpaceModel = require("../models/Space.Model");
 
 // --- CREAR RESERVA ---
 module.exports.createReservation = async (req, res) => {
   try {
-    console.log("🔹 Body recibido:", req.body);
-    console.log("🔹 Usuario autenticado:", req.user);
+    console.log("Body:", req.body);
 
     const { space, date, startHour, endHour } = req.body;
 
-    if (!space || !date || !startHour || !endHour) {
-      return res.status(400).json({ 
-        message: "Faltan campos obligatorios: space, date, startHour, endHour" 
-      });
-    }
-
-    // Verificar espacio
+    // - VERIFICAR ESPACIO -
     const spaceFound = await SpaceModel.findById(space);
     if (!spaceFound || !spaceFound.active) {
       return res.status(400).json({ message: "Espacio no disponible" });
     }
 
-    // ── Normalizar la fecha (¡esto faltaba!) ──
-    const normalizedDate = new Date(date);
-    normalizedDate.setHours(0, 0, 0, 0);   // quita hora, minutos, etc. → solo día
+    // - NORMALIZAR FECHA A UTC -
+    const reservationDate = new Date(date);
+    const startOfDay = new Date(Date.UTC(reservationDate.getUTCFullYear(), reservationDate.getUTCMonth(), reservationDate.getUTCDate(), 0, 0, 0, 0));
 
-    // Comprobar solapamientos
     const overlappingReservation = await ReservationModel.findOne({
       space,
-      date: normalizedDate,                    // ← ahora sí existe
-      startHour: { $lt: endHour },
-      endHour: { $gt: startHour },
+      date: startOfDay,  // Buscamos exactamente el día normalizado en UTC
+      $or: [{ startHour: { $lt: endHour }, endHour: { $gt: startHour } },],
       status: { $ne: "CANCELLED" }
     });
 
@@ -40,21 +33,20 @@ module.exports.createReservation = async (req, res) => {
       });
     }
 
-    // Crear reserva
+    // -- CREAR --
     const reservation = await ReservationModel.create({
       user: req.user._id,
       space,
-      date,               // puedes guardar la original con hora si quieres
-      // o date: normalizedDate  si prefieres guardarla limpia
+      date: startOfDay,  // Guardamos la fecha normalizada en UTC (medianoche)
       startHour,
       endHour
     });
-
     console.log("✅ Reserva creada:", reservation);
+
     return res.status(201).json(reservation);
 
   } catch (err) {
-    console.error("❌ Error en createReservation:", err);
+    console.error("Error en createReservation:", err);
     return res.status(500).json({ message: err.message });
   }
 };
@@ -62,13 +54,12 @@ module.exports.createReservation = async (req, res) => {
 // --- RESERVAS DEL USUARIO ---
 module.exports.getMyReservations = async (req, res) => {
   try {
-    const reservations = await ReservationModel.find({
-      user: req.user._id, // ✅ Cambiado de req.user.id a req.user._id
-    }).populate("space");
+    const reservations = await ReservationModel.find({ user: req.user._id })
+                                               .populate("space");
 
-    return res.json(reservations); // ✅ AÑADIR RETURN
+    return res.json(reservations); 
   } catch (err) {
-    return res.status(500).json({ message: err.message }); // ✅ AÑADIR RETURN
+    return res.status(500).json({ message: err.message }); 
   }
 };
 
@@ -83,9 +74,9 @@ module.exports.getAllReservations = async (req, res) => {
       .populate("user")
       .populate("space");
 
-    return res.json(reservations); // ✅ AÑADIR RETURN
+    return res.json(reservations);
   } catch (err) {
-    return res.status(500).json({ message: err.message }); // ✅ AÑADIR RETURN
+    return res.status(500).json({ message: err.message });
   }
 };
 
@@ -94,23 +85,12 @@ module.exports.cancelReservation = async (req, res) => {
   try {
     const reservation = await ReservationModel.findById(req.params.id);
 
-    if (!reservation) {
-      return res.status(404).json({ message: "Reserva no encontrada" });
-    }
-
-    if (
-      req.user.role !== "admin" &&
-      reservation.user.toString() !== req.user._id.toString() // ✅ Cambiado
-    ) {
-      return res.status(403).json({ message: "No autorizado" });
-    }
-
     reservation.status = "CANCELLED";
     await reservation.save();
 
-    return res.json({ message: "Reserva cancelada" }); // ✅ AÑADIR RETURN
+    return res.json({ message: "Reserva cancelada" }); 
   } catch (err) {
-    return res.status(500).json({ message: err.message }); // ✅ AÑADIR RETURN
+    return res.status(500).json({ message: err.message });
   }
 };
 
@@ -119,22 +99,7 @@ module.exports.reactivateReservation = async (req, res) => {
   try {
     const reservation = await ReservationModel.findById(req.params.id);
 
-    if (!reservation) {
-      return res.status(404).json({ message: "Reserva no encontrada" });
-    }
-
-    if (
-      req.user.role !== "admin" &&
-      reservation.user.toString() !== req.user._id.toString()
-    ) {
-      return res.status(403).json({ message: "No autorizado" });
-    }
-
-    if (reservation.status !== "CANCELLED") {
-      return res.status(400).json({ message: "La reserva no está cancelada" });
-    }
-
-    reservation.status = "PENDING";  // O "CONFIRMED" si prefieres
+    reservation.status = "PENDING";  
     await reservation.save();
 
     return res.json({ message: "Reserva reactivada" });
@@ -147,17 +112,6 @@ module.exports.reactivateReservation = async (req, res) => {
 module.exports.deleteReservation = async (req, res) => {
   try {
     const reservation = await ReservationModel.findById(req.params.id);
-
-    if (!reservation) {
-      return res.status(404).json({ message: "Reserva no encontrada" });
-    }
-
-    if (
-      req.user.role !== "admin" &&
-      reservation.user.toString() !== req.user._id.toString()
-    ) {
-      return res.status(403).json({ message: "No autorizado" });
-    }
 
     await ReservationModel.findByIdAndDelete(req.params.id);
 

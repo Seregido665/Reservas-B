@@ -5,8 +5,6 @@ const { generateToken } = require("../config/jwt.config");
 // -- REGISTRAR UN USUARIO --
 //    try - catch CON async - await PARA RESPETAR EL ORDEN DE LAS OPERACIONES
 const register = async (req, res) => {
-  
-  console.log("📌 register controller llamado");
   console.log("Body recibido:", req.body);
   try {
     const newUser = req.body;
@@ -17,7 +15,7 @@ const register = async (req, res) => {
       return res.status(400).json({ message: "El usuario ya existe" });
     }
 
-    // 2.- Crear el nuevo usuario (la contraseña se hasheará automáticamente en el pre-save hook)
+    // 2.- Crear el nuevo usuario
     const user = await UserModel.create(newUser);
 
     // 3.- Generar JWT token
@@ -25,6 +23,7 @@ const register = async (req, res) => {
       userId: user._id,
       email: user.email,
       name: user.name,
+      role: user.role
     });
 
     // -- USUARIO NUEVO --
@@ -32,9 +31,10 @@ const register = async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      role: user.role
     };
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "Usuario creado correctamente",
       token,
       user: userResponse,
@@ -76,6 +76,7 @@ const login = async (req, res) => {
       userId: user._id,
       email: user.email,
       name: user.name,
+      role: user.role
     });
 
     // -- SI SE LOGUEO CORRECTAMENTE --
@@ -83,6 +84,7 @@ const login = async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      role: user.role
     };
 
     res.status(200).json({
@@ -119,7 +121,7 @@ const refreshToken = async (req, res) => {
   try {
     const user = req.user;  // --> DEL MIDDLEWARE DE AUTENTICACIÓN
 
-    // Nuevo token
+    // - NUEVO TOKEN -
     const token = generateToken({
       userId: user._id,
       email: user.email,

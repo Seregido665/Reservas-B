@@ -51,12 +51,12 @@ const reservationSchema = new mongoose.Schema(
 );
 
 
-// 🧠 VALIDACIÓN: endHour debe ser mayor que startHour
+// VALIDACIÓN
 reservationSchema.pre("save", async function () {
   if (this.startHour >= this.endHour) {
     throw new Error("La hora de fin debe ser posterior a la de inicio");
+                    // APARECERÁ BAJO EL BOTON "RESERVAR"
   }
-  // No necesitas llamar a nada → continúa automáticamente
 });
 
 module.exports = mongoose.model("Reservation", reservationSchema);
